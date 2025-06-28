@@ -1,0 +1,9 @@
+[package]
+name = "rust_fuzzy_finder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossterm = { version = "0.27", features = ["use-dev-tty"] }
+fuzzy-matcher = "0.3"
+rand = "0.8"
