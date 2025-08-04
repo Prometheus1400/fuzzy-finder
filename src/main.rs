@@ -1,6 +1,7 @@
 mod result_item;
 mod score;
 mod ui;
+mod impl_vec;
 
 use ui::UI;
 use std::io::{self, Read};

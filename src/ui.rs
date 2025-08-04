@@ -19,6 +19,7 @@ use tokio::sync::{
     mpsc::{self, Receiver, Sender},
 };
 
+use crate::impl_vec::SortedExtend;
 use crate::result_item::ResultItem;
 use crate::score::score_items;
 
@@ -60,7 +61,6 @@ impl UI {
         execute!(self.stdout, EnterAlternateScreen, Show)?;
         self.stdout.flush()?;
         self.rescore_items(&sender).await;
-        // let mut ticker = interval(Duration::from_millis(self.refresh_interval_ms));
         tokio::spawn(Self::collect_results(
             receiver,
             self.matches.clone(),
@@ -68,7 +68,6 @@ impl UI {
             self.top_item.clone(),
         ));
         loop {
-            // ticker.tick().await;
             if event::poll(Duration::from_millis(self.refresh_interval_ms))? {
                 if let Event::Key(key_event) = event::read()? {
                     match key_event.code {
@@ -122,6 +121,7 @@ impl UI {
         });
     }
 
+    /// Long running process which uses the receiver to update the matches
     async fn collect_results(
         mut receiver: Receiver<Vec<ResultItem>>,
         matches: Arc<RwLock<Vec<ResultItem>>>,
@@ -135,8 +135,7 @@ impl UI {
             let scoring_task_id = batch.first().unwrap().scoring_task_id;
             if scoring_task_id == current_task_id.load(Ordering::SeqCst) {
                 let mut matches_lock = matches.write().await;
-                matches_lock.extend_from_slice(&batch);
-                matches_lock.sort_by_key(|result_item| result_item.score);
+                matches_lock.sorted_extend_from_slice(&batch);
                 let mut top_item_lock = top_item.write().await;
                 *top_item_lock = Some(matches_lock.first().unwrap().content.clone());
             }
@@ -161,12 +160,18 @@ impl UI {
             if i >= matches.len() {
                 break;
             }
+            execute!(self.stdout, MoveTo(0, (i + 1).try_into().unwrap()))?;
+            if i == 0 {
+                execute!(self.stdout, SetForegroundColor(Color::Red))?
+            }
             execute!(
                 self.stdout,
-                MoveTo(0, (i + 1).try_into().unwrap()),
                 Print(format!("{}: ", i)),
                 Print(format!("{}\n", matches[i].content))
             )?;
+            if i == 0 {
+                execute!(self.stdout, SetForegroundColor(Color::White))?
+            }
         }
         execute!(
             self.stdout,
