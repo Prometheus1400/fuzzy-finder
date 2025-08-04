@@ -1,5 +1,3 @@
-use std::cmp::Reverse;
-
 pub trait SortedExtend<T> {
     fn sorted_extend_from_slice(&mut self, slice: &[T])
     where
